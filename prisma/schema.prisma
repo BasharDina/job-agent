@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String        @id @default(cuid())
+  fullName     String
+  email        String        @unique
+  portfolioUrl String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  profile      Profile?
+  applications Application[]
+}
+
+model Profile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  headline           String?
+  summary            String?
+  skills             String?
+  tools              String?
+  languages          String?
+  preferredRoles     String?
+  preferredLocations String?
+  remoteOk           Boolean  @default(true)
+  salaryMin          Int?
+  salaryCurrency     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model JobSource {
+  id          String   @id @default(cuid())
+  platformName String
+  sourceType   String
+  policyLevel  String
+  createdAt    DateTime @default(now())
+
+  jobs Job[]
+}
+
+model Job {
+  id             String        @id @default(cuid())
+  externalId     String?
+  companyName    String
+  roleTitle      String
+  location       String?
+  remoteType     String?
+  description    String?
+  requirements   String?
+  salaryText     String?
+  sourceUrl      String?
+  applicationUrl String?
+  discoveredAt   DateTime      @default(now())
+  statusOpen     Boolean       @default(true)
+  sourceId       String
+
+  source         JobSource     @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  score          JobScore?
+  applications   Application[]
+}
+
+model JobScore {
+  id             String   @id @default(cuid())
+  jobId          String   @unique
+  totalScore     Int
+  skillsScore    Int
+  seniorityScore Int
+  portfolioScore Int
+  locationScore  Int
+  explanation    String?
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+model Application {
+  id               String          @id @default(cuid())
+  userId           String
+  jobId            String
+  appliedAt        DateTime?
+  method           String
+  platform         String
+  contactEmail     String?
+  formUrl          String?
+  resumeVersion    String?
+  coverLetterVersion String?
+  status           String
+  confirmationRef  String?
+  lastUpdateAt     DateTime        @default(now())
+
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job              Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  communications   Communication[]
+  alerts           Alert[]
+}
+
+model Communication {
+  id            String      @id @default(cuid())
+  applicationId String
+  channel       String
+  messageType   String
+  sender        String?
+  subject       String?
+  summary       String?
+  actionRequired Boolean    @default(false)
+  receivedAt    DateTime    @default(now())
+
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model Alert {
+  id            String      @id @default(cuid())
+  applicationId String
+  alertType     String
+  sentVia       String
+  status        String
+  sentAt        DateTime    @default(now())
+
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
