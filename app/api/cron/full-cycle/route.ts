@@ -1,23 +1,34 @@
 import { NextResponse } from "next/server";
 
-function isAuthorized(req: Request) {
+function getAuthDebug(req: Request) {
   const url = new URL(req.url);
-  const secretFromQuery = url.searchParams.get("secret");
-  const authHeader = req.headers.get("authorization");
 
-  const expected = process.env.CRON_SECRET;
+  const secretFromQueryRaw = url.searchParams.get("secret") || "";
+  const authHeaderRaw = req.headers.get("authorization") || "";
+  const expectedRaw = process.env.CRON_SECRET || "";
 
-  if (!expected) return false;
+  const secretFromQuery = secretFromQueryRaw.trim();
+  const authHeader = authHeaderRaw.trim();
+  const expected = expectedRaw.trim();
 
-  if (secretFromQuery && secretFromQuery === expected) {
-    return true;
-  }
+  const queryAuthorized = !!secretFromQuery && secretFromQuery === expected;
+  const headerAuthorized = authHeader === `Bearer ${expected}`;
 
-  if (authHeader === `Bearer ${expected}`) {
-    return true;
-  }
+  return {
+    queryAuthorized,
+    headerAuthorized,
+    hasExpected: !!expected,
+    expectedLength: expected.length,
+    queryLength: secretFromQuery.length,
+    authHeaderLength: authHeader.length,
+    queryPreview: secretFromQuery ? `${secretFromQuery.slice(0, 4)}***` : "",
+    expectedPreview: expected ? `${expected.slice(0, 4)}***` : "",
+  };
+}
 
-  return false;
+function isAuthorized(req: Request) {
+  const debug = getAuthDebug(req);
+  return debug.queryAuthorized || debug.headerAuthorized;
 }
 
 async function runCycle() {
@@ -41,7 +52,11 @@ export async function GET(req: Request) {
   try {
     if (!isAuthorized(req)) {
       return NextResponse.json(
-        { success: false, message: "Unauthorized" },
+        {
+          success: false,
+          message: "Unauthorized",
+          debug: getAuthDebug(req),
+        },
         { status: 401 }
       );
     }
@@ -71,7 +86,11 @@ export async function POST(req: Request) {
   try {
     if (!isAuthorized(req)) {
       return NextResponse.json(
-        { success: false, message: "Unauthorized" },
+        {
+          success: false,
+          message: "Unauthorized",
+          debug: getAuthDebug(req),
+        },
         { status: 401 }
       );
     }
