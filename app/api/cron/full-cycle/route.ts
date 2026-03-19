@@ -4,7 +4,6 @@ function isAuthorized(req: Request) {
   const url = new URL(req.url);
   const secretFromQuery = url.searchParams.get("secret");
   const authHeader = req.headers.get("authorization");
-
   const expected = process.env.CRON_SECRET;
 
   if (!expected) return false;
@@ -20,15 +19,30 @@ function isAuthorized(req: Request) {
   return false;
 }
 
-async function runCycle() {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
-  const res = await fetch(`${baseUrl}/api/agent/cycle`, {
+async function runCycle(origin: string) {
+  const res = await fetch(`${origin}/api/agent/cycle`, {
     method: "POST",
     cache: "no-store",
+    headers: {
+      Accept: "application/json",
+    },
   });
 
-  const data = await res.json();
+  const contentType = res.headers.get("content-type") || "";
+  const rawText = await res.text();
+
+  if (!contentType.includes("application/json")) {
+    throw new Error(
+      `Expected JSON from /api/agent/cycle but got ${contentType || "unknown content-type"}`
+    );
+  }
+
+  let data: any;
+  try {
+    data = JSON.parse(rawText);
+  } catch {
+    throw new Error("Failed to parse JSON returned from /api/agent/cycle");
+  }
 
   if (!res.ok) {
     throw new Error(data?.message || "Cycle failed");
@@ -46,7 +60,8 @@ export async function GET(req: Request) {
       );
     }
 
-    const data = await runCycle();
+    const origin = new URL(req.url).origin;
+    const data = await runCycle(origin);
 
     return NextResponse.json({
       success: true,
@@ -76,7 +91,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const data = await runCycle();
+    const origin = new URL(req.url).origin;
+    const data = await runCycle(origin);
 
     return NextResponse.json({
       success: true,
