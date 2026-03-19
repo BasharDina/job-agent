@@ -1,20 +1,10 @@
-name: Job Agent Runner
+name: Test Workflow
 
-on:
+"on":
   workflow_dispatch:
-  schedule:
-    - cron: "0 * * * *"
 
 jobs:
-  run-agent:
+  test:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Call Full Cycle API
-        run: |
-          curl -L --fail \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            "$APP_BASE_URL/api/cron/full-cycle"
-        env:
-          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      - run: echo "hello"
