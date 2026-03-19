@@ -16,5 +16,4 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           curl -L --fail \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            "$APP_BASE_URL/api/cron/full-cycle"
+            "$APP_BASE_URL/api/cron/full-cycle?secret=$CRON_SECRET"
